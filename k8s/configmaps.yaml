@@ -1,0 +1,19 @@
+# /k8s/configmaps.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ecomm-config-w10-aks
+data:
+  PRODUCTS_DB_NAME: products
+  ORDERS_DB_NAME: orders
+  CUSTOMERS_DB_NAME: customers
+
+  AZURE_STORAGE_CONTAINER_NAME: product-images
+  AZURE_SAS_TOKEN_EXPIRY_HOURS: "24"
+
+  # Internal Service URLs 
+  PRODUCT_SERVICE_URL: http://week10-product-service-w10-aks:8000
+  ORDER_SERVICE_URL: http://week10-order-service-w10-aks:8001
+  CUSTOMER_SERVICE_URL: http://week10-customer-service-w10-aks:8002
+  RABBITMQ_HOST: rabbitmq-service-w10-aks
