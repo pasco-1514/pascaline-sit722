@@ -43,18 +43,18 @@ jobs:
       # 🔹 Update images with latest tag from ACR
       - name: Deploy Customer Service
         run: |
-          kubectl set image deployment/customer-service \
-            customer-service=${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ env.IMAGE_TAG }}
-          kubectl rollout status deployment/customer-service
+          kubectl set image deployment/customer-service-w10-aks \
+            customer-service-container=${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ env.IMAGE_TAG }}
+          kubectl rollout status deployment/customer-service-w10-aks
 
       - name: Deploy Product Service
         run: |
-          kubectl set image deployment/product-service \
-            product-service=${{ env.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}
-          kubectl rollout status deployment/product-service
+          kubectl set image deployment/order-service-w10-aks \
+            product-service-container=${{ env.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}
+          kubectl rollout status deployment/order-service-w10-aks
 
       - name: Deploy Order Service
         run: |
-          kubectl set image deployment/order-service \
-            order-service=${{ env.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}
-          kubectl rollout status deployment/order-service
+          kubectl set image deployment/product-service-w10-aks \
+            order-service-container=${{ env.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}
+          kubectl rollout status deployment/product-service-w10-aks
