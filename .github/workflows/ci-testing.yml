@@ -9,39 +9,57 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: customers
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/customers
+
     steps:
-      # Step 1: Checkout code
+      # Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Python (for running pytest in each service)
+      # Set up Python for tests
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      # Step 3: Install and run tests for Customer Service
+      # Run tests for Customer Service
       - name: Test Customer Service
         working-directory: backend/customer_service
         run: |
           pip install -r requirements-dev.txt
           pytest --maxfail=1 --disable-warnings -q
 
-      # Step 4: Install and run tests for Order Service
+      # Run tests for Order Service
       - name: Test Order Service
         working-directory: backend/order_service
         run: |
           pip install -r requirements-dev.txt
           pytest --maxfail=1 --disable-warnings -q
 
-      # Step 5: Install and run tests for Product Service
+      # Run tests for Product Service
       - name: Test Product Service
         working-directory: backend/product_service
         run: |
           pip install -r requirements-dev.txt
           pytest --maxfail=1 --disable-warnings -q
 
-      # Step 6: Log in to Azure Container Registry
+      # Log in to Azure Container Registry
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v1
         with:
@@ -49,25 +67,25 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      # Step 7: Build and Push Customer Service Image
+      # Build & Push Customer Service Image
       - name: Build and Push Customer Service
         run: |
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/customer_service:${{ github.sha }} backend/customer_service
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/customer_service:${{ github.sha }}
 
-      # Step 8: Build and Push Order Service Image
+      # Build & Push Order Service Image
       - name: Build and Push Order Service
         run: |
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }} backend/order_service
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }}
 
-      # Step 9: Build and Push Product Service Image
+      # Build & Push Product Service Image
       - name: Build and Push Product Service
         run: |
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }} backend/product_service
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }}
 
-      # Step 10: Build and Push Frontend Image
+      # Build & Push Frontend Image
       - name: Build and Push Frontend
         run: |
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} frontend
