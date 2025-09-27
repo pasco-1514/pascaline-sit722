@@ -1,0 +1,53 @@
+name: Deploy to Production AKS
+
+on:
+  push:
+    branches: [ "main" ]   # Only trigger on merges to main
+  workflow_dispatch:       # Allow manual run
+
+env:
+  ACR_NAME: ${{ secrets.AZURE_CONTAINER_REGISTRY }}             # e.g. myregistry
+  ACR_LOGIN_SERVER: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+  IMAGE_TAG: latest                                            # always deploy latest tested image
+  RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP_PROD }}      # existing prod resource group
+  AKS_CLUSTER: ${{ secrets.AZURE_AKS_PROD }}                    # existing AKS cluster name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Authenticate with Azure
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Get credentials for existing prod AKS
+      - name: Get AKS Credentials
+        run: |
+          az aks get-credentials \
+            --resource-group $RESOURCE_GROUP \
+            --name $AKS_CLUSTER \
+            --overwrite-existing
+
+      # Deploy to AKS using kubectl (must have prod manifests in repo)
+      - name: Deploy Customer Service
+        run: |
+          kubectl set image deployment/customer-service \
+            customer-service=${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ env.IMAGE_TAG }}
+          kubectl rollout status deployment/customer-service
+
+      - name: Deploy Product Service
+        run: |
+          kubectl set image deployment/product-service \
+            product-service=${{ env.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}
+          kubectl rollout status deployment/product-service
+
+      - name: Deploy Order Service
+        run: |
+          kubectl set image deployment/order-service \
+            order-service=${{ env.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}
+          kubectl rollout status deployment/order-service
