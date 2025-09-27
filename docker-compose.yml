@@ -83,7 +83,7 @@ services:
     build:
       context: ./backend/product_service
       dockerfile: Dockerfile
-    image: product_service:latest
+    image: pascweek10ac.azurecr.io/product_service:latest
     container_name: product_api_container
     restart: always
     ports:
@@ -112,7 +112,7 @@ services:
     build:
       context: ./backend/order_service
       dockerfile: Dockerfile
-    image: order_service:latest
+    image: pascweek10ac.azurecr.io/order_service:latest
     container_name: order_api_container
     restart: always
     ports:
@@ -140,7 +140,7 @@ services:
     build:
       context: ./backend/customer_service
       dockerfile: Dockerfile
-    image: customer_service:latest
+    image: pascweek10ac.azurecr.io/customer_service:latest
     container_name: customer_api_container
     restart: always
     ports:
