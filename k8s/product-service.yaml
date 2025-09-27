@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: product-service-container
-        image: product_service:latest
+        image: pascweek10ac.azurecr.io/product_service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000

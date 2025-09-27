@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: customer-service-container
-        image: service:latest
+        image: pascweek10ac.azurecr.io/service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8002
