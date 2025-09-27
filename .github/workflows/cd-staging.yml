@@ -10,8 +10,8 @@ env:
   ACR_NAME: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
   ACR_LOGIN_SERVER: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
   IMAGE_TAG: ${{ github.sha }}
-  RESOURCE_GROUP: staging-rg
-  AKS_CLUSTER: staging-aks
+  RESOURCE_GROUP: pascweek10RG
+  AKS_CLUSTER: pascweek10aks
 
 jobs:
   deploy_staging:
