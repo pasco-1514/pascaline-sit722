@@ -33,7 +33,14 @@ jobs:
             --name $AKS_CLUSTER \
             --overwrite-existing
 
-      # Deploy to AKS using kubectl (must have prod manifests in repo)
+      # 🔹 Apply base Kubernetes manifests (first deploy or updates to configs)
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/customer-service.yaml
+          kubectl apply -f k8s/product-service.yaml
+          kubectl apply -f k8s/order-service.yaml
+
+      # 🔹 Update images with latest tag from ACR
       - name: Deploy Customer Service
         run: |
           kubectl set image deployment/customer-service \
