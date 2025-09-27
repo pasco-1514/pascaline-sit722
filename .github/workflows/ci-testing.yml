@@ -3,12 +3,13 @@ name: Backend CI - Build and Push Images to ACR
 
 on:
   push:
-    branches: [ "testing" ]      # Trigger only on 'testing' branch
+    branches: [ "testing" ]
     paths: [ "backend/**" ]
-  workflow_dispatch:             # Allow manual trigger
+  workflow_dispatch:
 
 env:
-  ACR_LOGIN_SERVER: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
+  ACR_NAME: ${{ secrets.AZURE_CONTAINER_REGISTRY }}                # short name, e.g. myregistry
+  ACR_LOGIN_SERVER: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
@@ -21,9 +22,9 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - run: az acr login --name ${{ env.ACR_LOGIN_SERVER }}
+      - run: az acr login --name ${{ env.ACR_NAME }}
 
-      # Build & Push Customer Service
+      # Customer Service
       - run: |
           docker build -t ${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ env.IMAGE_TAG }} \
                        -t ${{ env.ACR_LOGIN_SERVER }}/customer_service:latest \
@@ -31,7 +32,7 @@ jobs:
           docker push ${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ env.IMAGE_TAG }}
           docker push ${{ env.ACR_LOGIN_SERVER }}/customer_service:latest
 
-      # Build & Push Product Service
+      # Product Service
       - run: |
           docker build -t ${{ env.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }} \
                        -t ${{ env.ACR_LOGIN_SERVER }}/product_service:latest \
@@ -39,7 +40,7 @@ jobs:
           docker push ${{ env.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}
           docker push ${{ env.ACR_LOGIN_SERVER }}/product_service:latest
 
-      # Build & Push Order Service
+      # Order Service
       - run: |
           docker build -t ${{ env.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }} \
                        -t ${{ env.ACR_LOGIN_SERVER }}/order_service:latest \
