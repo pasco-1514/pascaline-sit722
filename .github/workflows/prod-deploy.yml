@@ -25,6 +25,11 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # Attach ACR to AKS (ensures prod cluster can pull images)
+      - name: Attach ACR to AKS
+        run: |
+          az aks update -n $AKS_CLUSTER -g $RESOURCE_GROUP --attach-acr $ACR_NAME
+
       # Get credentials for existing prod AKS
       - name: Get AKS Credentials
         run: |
