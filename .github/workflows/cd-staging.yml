@@ -1,8 +1,8 @@
-name: Stage 2 - Deploy to Temporary Staging
+name: Stage 2 - Deploy to Staging
 
 on:
   workflow_run:
-    workflows: ["Backend CI - Build and Push Images to ACR"]   # Run after Stage 1
+    workflows: ["Backend CI - Build and Push Images to ACR"]   # Runs after Stage 1
     types:
       - completed
 
@@ -11,7 +11,6 @@ env:
   ACR_LOGIN_SERVER: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
   IMAGE_TAG: ${{ github.sha }}
   RESOURCE_GROUP: staging-rg
-  LOCATION: eastus
   AKS_CLUSTER: staging-aks
 
 jobs:
@@ -26,30 +25,41 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Provision staging infra (with Bicep/ARM/Terraform)
-      - name: Create Staging Infra
+      # Connect to existing AKS
+      - name: Connect to AKS
         run: |
-          az group create -n $RESOURCE_GROUP -l $LOCATION
-          az aks create -g $RESOURCE_GROUP -n $AKS_CLUSTER --node-count 1 --enable-managed-identity --generate-ssh-keys
           az aks get-credentials -g $RESOURCE_GROUP -n $AKS_CLUSTER --overwrite-existing
 
-      # Deploy services with kubectl (or Helm)
-      - name: Deploy to AKS Staging
+      # Deploy workloads to staging namespace
+      - name: Deploy to Staging
         run: |
           kubectl create namespace staging || true
-          kubectl -n staging create deployment customer-service \
-            --image=${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ env.IMAGE_TAG }} || \
-            kubectl -n staging set image deployment/customer-service \
-            customer-service=${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ env.IMAGE_TAG }}
 
+          kubectl -n staging set image deployment/customer-service \
+            customer-service=${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ env.IMAGE_TAG }} || \
+            kubectl -n staging create deployment customer-service \
+            --image=${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ env.IMAGE_TAG }}
+
+          kubectl -n staging set image deployment/product-service \
+            product-service=${{ env.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }} || \
+            kubectl -n staging create deployment product-service \
+            --image=${{ env.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}
+
+          kubectl -n staging set image deployment/order-service \
+            order-service=${{ env.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }} || \
+            kubectl -n staging create deployment order-service \
+            --image=${{ env.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}
+
+          # Optionally expose services
           kubectl -n staging expose deployment customer-service --type=LoadBalancer --port=80 || true
+          kubectl -n staging expose deployment product-service --type=LoadBalancer --port=80 || true
+          kubectl -n staging expose deployment order-service --type=LoadBalancer --port=80 || true
 
-      # Run trivial acceptance tests (optional)
-      - name: Run smoke tests
+      # Simple smoke test (optional)
+      - name: Run Smoke Tests
         run: |
-          sleep 60
+          kubectl get pods -n staging
           kubectl get svc -n staging
-          # curl or httpx test can go here
 
   destroy_staging:
     runs-on: ubuntu-latest
@@ -60,6 +70,11 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Destroy Staging Infra
+      - name: Connect to AKS
         run: |
-          az group delete -n $RESOURCE_GROUP -y --no-wait
+          az aks get-credentials -g $RESOURCE_GROUP -n $AKS_CLUSTER --overwrite-existing
+
+      # Destroy only the namespace (not the cluster)
+      - name: Delete Staging Workloads
+        run: |
+          kubectl delete namespace staging || true
