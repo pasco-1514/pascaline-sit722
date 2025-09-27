@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ORDER_API_BASE_URL = '';
     const CUSTOMER_API_BASE_URL = '';
     
-    // testing CI 1
+    // testing CI 3
     // DOM Elements
     const messageBox = document.getElementById('message-box');
     const productForm = document.getElementById('product-form');
