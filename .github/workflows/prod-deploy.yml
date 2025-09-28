@@ -1,65 +1,59 @@
-name: Deploy to Production AKS
+name: Backend CD - Deploy Backend Services to AKS
 
 on:
   push:
-    branches: [ "main" ]   # Only trigger on merges to main
-  workflow_dispatch:       # Allow manual run
-
-env:
-  ACR_NAME: ${{ secrets.AZURE_CONTAINER_REGISTRY }}             # e.g. myregistry
-  ACR_LOGIN_SERVER: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
-  IMAGE_TAG: latest                                            # always deploy latest tested image
-  RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP_PROD }}      # existing prod resource group
-  AKS_CLUSTER: ${{ secrets.AZURE_AKS_PROD }}                    # existing AKS cluster name
+    branches: [ "main" ]
+    paths:
+      - 'backend/**'
+      - 'k8s/**'
+      - '.github/workflows/prod-deploy.yml'
 
 jobs:
-  deploy:
+  deploy_backend:
     runs-on: ubuntu-latest
+    environment: Production
 
     steps:
       - uses: actions/checkout@v4
 
-      # Authenticate with Azure
-      - name: Azure Login
-        uses: azure/login@v1
+      - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Attach ACR to AKS (ensures prod cluster can pull images)
-      - name: Attach ACR to AKS
+      # Optional: check that secrets are populated
+      - name: Debug secrets (safe values only)
         run: |
-          az aks update -n $AKS_CLUSTER -g $RESOURCE_GROUP --attach-acr $ACR_NAME
+          echo "Resource Group: ${{ secrets.AKS_RG }}"
+          echo "Cluster Name:   ${{ secrets.AKS_NAME }}"
+          echo "ACR:            ${{ secrets.AZURE_CONTAINER_REGISTRY }}"
 
-      # Get credentials for existing prod AKS
-      - name: Get AKS Credentials
+      - name: Set Kubernetes context
         run: |
           az aks get-credentials \
-            --resource-group $RESOURCE_GROUP \
-            --name $AKS_CLUSTER \
+            --resource-group ${{ secrets.AKS_RG }} \
+            --name ${{ secrets.AKS_NAME }} \
             --overwrite-existing
 
-      # 🔹 Apply base Kubernetes manifests (first deploy or updates to configs)
-      - name: Apply Kubernetes manifests
+      - name: Attach ACR
         run: |
-          kubectl apply -f k8s/customer-service.yaml
-          kubectl apply -f k8s/product-service.yaml
-          kubectl apply -f k8s/order-service.yaml
+          az aks update \
+            --name ${{ secrets.AKS_NAME }} \
+            --resource-group ${{ secrets.AKS_RG }} \
+            --attach-acr ${{ secrets.AZURE_CONTAINER_REGISTRY }}
 
-      # 🔹 Update images with latest tag from ACR
-      - name: Deploy Customer Service
+      - name: Deploy Backend Infrastructure
         run: |
-          kubectl set image deployment/customer-service-w10-aks \
-            customer-service-container=${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ env.IMAGE_TAG }}
-          kubectl rollout status deployment/customer-service-w10-aks
+          cd k8s/
+          kubectl apply -f configmaps.yaml
+          kubectl apply -f secrets.yaml
+          kubectl apply -f product-db.yaml
+          kubectl apply -f order-db.yaml
 
-      - name: Deploy Product Service
+      - name: Deploy Backend Services
         run: |
-          kubectl set image deployment/order-service-w10-aks \
-            product-service-container=${{ env.ACR_LOGIN_SERVER }}/product_service:${{ env.IMAGE_TAG }}
-          kubectl rollout status deployment/order-service-w10-aks
+          cd k8s/
+          kubectl apply -f product-service.yaml
+          kubectl apply -f order-service.yaml
 
-      - name: Deploy Order Service
-        run: |
-          kubectl set image deployment/product-service-w10-aks \
-            order-service-container=${{ env.ACR_LOGIN_SERVER }}/order_service:${{ env.IMAGE_TAG }}
-          kubectl rollout status deployment/product-service-w10-aks
+      - run: az logout
+        if: always()
