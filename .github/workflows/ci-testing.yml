@@ -1,5 +1,5 @@
 # .github/workflows/ci-testing.yml
-name: Backend CI - Build and Push Images to ACR
+name: CI Testing - Build and Push Images to ACR
 
 on:
   push:
