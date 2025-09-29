@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+# // CI testing
+
 
 class CustomerBase(BaseModel):
     email: EmailStr = Field(..., description="Unique email address of the customer.")
